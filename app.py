@@ -20,21 +20,11 @@ st.markdown(f"""
     <style>
     .stApp {{ background-color: #FDFEFE; }}
     
-    /* Contenedor de la Diapositiva (Tarjeta) */
-    .slide-card {{
-        background-color: #FFFFFF;
-        border-radius: 20px;
-        padding: 30px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-        border: 1px solid #F0F3F4;
-        margin-top: 0px; /* Quitamos margen superior para evitar el hueco */
-    }}
-    
     .titulo-finanzas {{ 
         font-size: 32px !important; 
         font-weight: bold; 
         color: #8B5A2B; 
-        margin-top: 0px !important;
+        margin-top: 10px !important;
         margin-bottom: 10px;
         line-height: 1.2;
     }}
@@ -43,13 +33,21 @@ st.markdown(f"""
         font-size: 19px !important; 
         color: #457B9D; 
         font-style: italic; 
-        margin-bottom: 20px;
+        margin-bottom: 25px;
+        line-height: 1.4;
     }}
     
     .texto-finanzas {{ 
         font-size: 21px !important; 
-        line-height: 1.6; 
+        line-height: 1.7; 
         color: #2E4053;
+        margin-bottom: 20px;
+    }}
+
+    /* Estilo para los botones de navegación */
+    .stButton>button {{
+        border-radius: 12px;
+        font-weight: bold;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -88,7 +86,7 @@ else:
     if 'indice' not in st.session_state: st.session_state.indice = 0
     fila = pasos.iloc[st.session_state.indice]
 
-    # 1. Cabecera (Fuera del recuadro blanco)
+    # --- CABECERA ---
     c1, c2 = st.columns([1, 1])
     with c1:
         st.image(URL_LOGO, width=140)
@@ -98,30 +96,25 @@ else:
             del st.session_state['autenticado']
             st.rerun()
 
-    st.write("") # Espacio pequeño
+    st.divider() # Línea estética sutil
 
-    # 2. CUERPO DE LA TARJETA (Aquí empieza el recuadro blanco)
-    # Usamos st.container para agrupar y evitar que Streamlit meta aire arriba
-    with st.container():
-        st.markdown('<div class="slide-card">', unsafe_allow_html=True)
-        
-        st.markdown(f"<div class='titulo-finanzas'>{fila.get('titulo', '')}</div>", unsafe_allow_html=True)
-        st.markdown(f"<div class='subtitulo-finanzas'>{fila.get('subtitulo', '')}</div>", unsafe_allow_html=True)
-        
-        texto_final = str(fila.get('teoriatarea', '')).replace('\n', '<br>')
-        st.markdown(f"<div class='texto-finanzas'>{texto_final}</div>", unsafe_allow_html=True)
-        
-        resp_usuario = ""
-        if str(fila.get('tipoinput', '')).lower() == 'texto':
-            st.write("---")
-            resp_usuario = st.text_area("Escribe tu reflexión aquí:", key=f"in_{st.session_state.indice}", height=150)
-        
-        if pd.notna(fila.get('audiourl')) and str(fila.get('audiourl')).startswith('http'):
-            st.audio(fila.get('audiourl'))
-            
-        st.markdown("</div>", unsafe_allow_html=True)
+    # --- CONTENIDO (SIN MARCO) ---
+    st.markdown(f"<div class='titulo-finanzas'>{fila.get('titulo', '')}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='subtitulo-finanzas'>{fila.get('subtitulo', '')}</div>", unsafe_allow_html=True)
+    
+    # Aplicar saltos de línea de Excel
+    texto_final = str(fila.get('teoriatarea', '')).replace('\n', '<br>')
+    st.markdown(f"<div class='texto-finanzas'>{texto_final}</div>", unsafe_allow_html=True)
+    
+    resp_usuario = ""
+    if str(fila.get('tipoinput', '')).lower() == 'texto':
+        st.write("---")
+        resp_usuario = st.text_area("Escribe tu reflexión aquí:", key=f"in_{st.session_state.indice}", height=180)
+    
+    if pd.notna(fila.get('audiourl')) and str(fila.get('audiourl')).startswith('http'):
+        st.audio(fila.get('audiourl'))
 
-    # 3. NAVEGACIÓN (Fuera del recuadro)
+    # --- NAVEGACIÓN ---
     st.write(" ")
     col_prev, col_next = st.columns([1, 1])
     with col_prev:
@@ -136,6 +129,7 @@ else:
                 st.session_state.indice += 1
                 st.rerun()
         else:
-            if st.button("✅ ¡Terminar!"):
+            if st.button("✅ ¡Terminar Día 2!"):
                 if resp_usuario: enviar_a_excel(st.session_state.usuario_email, 2, fila['paso'], resp_usuario)
                 st.balloons()
+                st.success("¡Excelente trabajo! Tus respuestas han sido guardadas.")
