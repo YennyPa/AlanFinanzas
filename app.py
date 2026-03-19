@@ -1,75 +1,93 @@
 import streamlit as st
 import pandas as pd
 
-# 1. TUS LINKS (Cámbialos por los links CSV de cada hoja)
-URL_CONTENIDO = "TU_LINK_CSV_HOJA_CONTENIDO"
-URL_USUARIOS = "TU_LINK_CSV_HOJA_USUARIOS"
+# --- CONFIGURACIÓN DE LINKS ---
+URL_CONTENIDO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOBIwmsv4S0lx3IA7x2K-q1dVBTtO37eUo35h6BmupREN_cVkCvt2XaOaYIijQbIP5A/pub?gid=0&single=true&output=csv"
+URL_USUARIOS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOBIwmsv4S0lx3IA7x2K-q1dVBTtO37eUo35h6BmupREN_cVkCvt2XaOaYIijQbIP5A/pub?gid=83033184&single=true&output=csv"
 
 st.set_page_config(page_title="Reto Financiero", page_icon="💰")
 
-# Función para leer el Excel publicado
+# Función para cargar datos
+@st.cache_data(ttl=300) # Se actualiza cada 5 min
 def cargar_datos(url):
     return pd.read_csv(url)
 
-# --- PANTALLA DE ACCESO ---
+# --- LÓGICA DE ACCESO ---
 if 'autenticado' not in st.session_state:
-    st.title("Bienvenido al Reto")
-    email_input = st.text_input("Ingresa tu correo para comenzar:").lower().strip()
+    st.title("🛡️ Acceso al Reto")
+    email_input = st.text_input("Ingresa tu correo registrado:").lower().strip()
     
-    if st.button("Ingresar"):
+    if st.button("Entrar"):
         try:
             df_users = cargar_datos(URL_USUARIOS)
-            # Buscamos al usuario por email
-            user_data = df_users[df_users['Email'].str.lower() == email_input]
+            # Buscamos el correo en la columna 'Email'
+            user_row = df_users[df_users['Email'].str.lower() == email_input]
             
-            if not user_data.empty:
-                estado = user_data.iloc[0]['Estado_Calculado'] # Aquí lee tu fórmula de Excel
+            if not user_row.empty:
+                # Revisamos la columna 'Estado_Calculado' (la de tu fórmula)
+                estado = user_row.iloc[0]['Estado_Calculado']
                 if estado == "ACTIVO":
                     st.session_state['autenticado'] = True
-                    st.session_state['usuario'] = user_data.iloc[0]['Nombre_Completo']
+                    st.session_state['usuario_nombre'] = user_row.iloc[0]['Nombre_Completo']
+                    st.session_state['usuario_email'] = email_input
                     st.rerun()
                 else:
-                    st.error("Tu acceso ha expirado. Contacta a tu Coach.")
+                    st.error("⏳ Tu acceso ha expirado. Contacta a tu Coach.")
             else:
-                st.warning("Correo no encontrado. Verifica con tu Coach.")
-        except:
-            st.error("Error conectando con la base de datos.")
+                st.warning("🚫 Correo no encontrado. Verifica con tu Coach.")
+        except Exception as e:
+            st.error("Hubo un problema al conectar con la base de datos.")
+
+# --- APP PRINCIPAL (CONTENIDO) ---
 else:
-    # --- PANTALLA DEL REEL (Día 2) ---
-    st.sidebar.write(f"Hola, {st.session_state['usuario']} 👋")
+    st.sidebar.title(f"Hola, {st.session_state['usuario_nombre']} 👋")
     if st.sidebar.button("Cerrar Sesión"):
         del st.session_state['autenticado']
         st.rerun()
 
-    # Cargar contenido del Día 2
-    df_content = cargar_datos(URL_CONTENIDO)
-    pasos_dia_2 = df_content[df_content['Dia'] == 2].sort_values('Paso')
-    
-    # Navegación del Reel
-    if 'paso_actual' not in st.session_state:
-        st.session_state.paso_actual = 0
+    try:
+        df_content = cargar_datos(URL_CONTENIDO)
+        # Filtramos solo el Día 2 para esta prueba
+        pasos = df_content[df_content['Dia'] == 2].sort_values('Paso')
+        total_pasos = len(pasos)
 
-    total_pasos = len(pasos_dia_2)
-    fila = pasos_dia_2.iloc[st.session_state.paso_actual]
+        if 'indice' not in st.session_state:
+            st.session_state.indice = 0
 
-    # Diseño de la Lámina
-    st.progress((st.session_state.paso_actual + 1) / total_pasos)
-    st.subheader(f"{fila['Titulo']}")
-    st.info(f"**{fila['Subtitulo']}**")
-    st.write(fila['Teoria_Tarea'])
+        # Mostrar progreso
+        progreso = (st.session_state.indice + 1) / total_pasos
+        st.progress(progreso)
+        
+        # Datos del paso actual
+        fila = pasos.iloc[st.session_state.indice]
+        
+        st.header(f"{fila['Titulo']}")
+        st.subheader(fila['Subtitulo'])
+        
+        # Contenedor de la Teoría/Tarea
+        with st.container(border=True):
+            st.markdown(fila['Teoria_Tarea'])
+            
+            # Si hay audio, lo mostramos
+            if pd.notna(fila['Audio_URL']) and str(fila['Audio_URL']).startswith('http'):
+                st.audio(fila['Audio_URL'])
 
-    # Navegación entre láminas
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.session_state.paso_actual > 0:
-            if st.button("⬅️ Anterior"):
-                st.session_state.paso_actual -= 1
-                st.rerun()
-    with col2:
-        if st.session_state.paso_actual < total_pasos - 1:
-            if st.button("Siguiente ➡️"):
-                st.session_state.paso_actual += 1
-                st.rerun()
-        else:
-            st.success("¡Has llegado al final de la lección!")
-            st.button("✅ Enviar reporte al Coach (WhatsApp)")
+        # Navegación
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.session_state.indice > 0:
+                if st.button("⬅️ Anterior"):
+                    st.session_state.indice -= 1
+                    st.rerun()
+        
+        with col2:
+            if st.session_state.indice < total_pasos - 1:
+                if st.button("Siguiente ➡️"):
+                    st.session_state.indice += 1
+                    st.rerun()
+            else:
+                st.success("¡Completaste el Día 2! 🎉")
+                # Aquí podrías poner el botón de WhatsApp final
+
+    except:
+        st.error("No se pudo cargar el contenido. Revisa tu hoja de 'Contenido'.")
