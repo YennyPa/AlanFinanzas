@@ -10,7 +10,7 @@ URL_USUARIOS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOBI
 # --- REEMPLAZA ESTO CON TU URL DE APPS SCRIPT ---
 URL_SCRIPT_RESPUESTAS = "TU_URL_AQUÍ" 
 
-# --- URL DEL LOGO (Nombre corregido a logo.png en GitHub) ---
+# --- URL DEL LOGO EN GITHUB (Asegúrate que el nombre sea logo.png) ---
 URL_LOGO = "https://raw.githubusercontent.com/YennyPa/AlanFinanzas/main/logo.png"
 
 st.set_page_config(page_title="Alan Finanzas - Reto", page_icon="💰", layout="centered")
@@ -20,14 +20,24 @@ st.markdown(f"""
     <style>
     .stApp {{ background-color: #FDFEFE; }}
     
-    /* Tarjeta de Contenido Principal */
+    /* Encabezado con logo y saludo */
+    .header-container {{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 10px;
+        margin-bottom: 30px;
+    }}
+    
+    /* Contenedor principal de la Diapositiva (Tarjeta con sombra) */
     .slide-card {{
         background-color: #FFFFFF;
         border-radius: 20px;
         padding: 35px;
         box-shadow: 0 4px 20px rgba(0,0,0,0.05);
         border: 1px solid #F0F3F4;
-        margin-top: 10px;
+        margin-top: 20px;
+        margin-bottom: 20px;
     }}
     
     .titulo-finanzas {{ 
@@ -36,6 +46,7 @@ st.markdown(f"""
         color: #8B5A2B; 
         margin-bottom: 8px;
         line-height: 1.2;
+        margin-top: 0px !important; /* Elimina espacio extra arriba */
     }}
     
     .subtitulo-finanzas {{ 
@@ -101,20 +112,35 @@ else:
     
     fila = pasos.iloc[st.session_state.indice]
 
-    # Encabezado con Logo y Saludo
-    c1, c2 = st.columns([1, 1])
-    with c1:
-        st.image(URL_LOGO, width=140)
-    with c2:
-        st.write(f"Hola, **{st.session_state['usuario_nombre']}** 👋")
+    # --- ENCABEZADO ESTILIZADO (LOGO Y SALUDO) ---
+    c_logo, c_perfil = st.columns([1, 1])
+    with c_logo:
+        # Intentamos cargar el logo (Opción A: L mayúscula, Opción B: l minúscula)
+        URL_A = "https://raw.githubusercontent.com/YennyPa/AlanFinanzas/main/Logo.png"
+        URL_B = "https://raw.githubusercontent.com/YennyPa/AlanFinanzas/main/logo.png"
+        
+        try:
+            st.image(URL_A, width=140)
+        except:
+            try:
+                st.image(URL_B, width=140)
+            except:
+                st.warning("⚠️ Logo no encontrado en GitHub")
+    
+    with c_perfil:
+        st.write(f"👋 Hola, **{st.session_state['usuario_nombre']}**")
         if st.button("Cerrar Sesión"):
             del st.session_state['autenticado']
             st.rerun()
 
-    # --- CUERPO DE LA DIAPOSITIVA ---
-    # Eliminamos el st.container(border=True) anterior que creaba el cuadro blanco extra
+    st.write("---") # Línea divisoria
+
+    # --- CUERPO DE LA DIAPOSITIVA (CON EL RECUADRO CORREGIDO) ---
+    
+    # IMPORTANTE: El recuadro (slide-card) empieza AQUÍ, envolviendo los títulos y la teoría.
     st.markdown("<div class='slide-card'>", unsafe_allow_html=True)
     
+    # Títulos dentro de la tarjeta
     st.markdown(f"<div class='titulo-finanzas'>{fila.get('titulo', '')}</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='subtitulo-finanzas'>{fila.get('subtitulo', '')}</div>", unsafe_allow_html=True)
     
@@ -122,7 +148,7 @@ else:
     texto_final = str(fila.get('teoriatarea', '')).replace('\n', '<br>')
     st.markdown(f"<div class='texto-finanzas'>{texto_final}</div>", unsafe_allow_html=True)
     
-    # Campo de entrada de texto
+    # Campo de entrada de texto si corresponde
     resp_usuario = ""
     if str(fila.get('tipoinput', '')).lower() == 'texto':
         st.write("---")
@@ -132,7 +158,7 @@ else:
     if pd.notna(fila.get('audiourl')) and str(fila.get('audiourl')).startswith('http'):
         st.audio(fila.get('audiourl'))
         
-    st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True) # --- FIN DE LA TARJETA (slide-card) ---
 
     # --- NAVEGACIÓN ---
     st.write(" ")
