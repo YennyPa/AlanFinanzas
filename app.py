@@ -7,8 +7,11 @@ import json
 URL_CONTENIDO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOBIwmsv4S0lx3IA7x2K-q1dVBTtO37eUo35h6BmupREN_cVkCvt2XaOaYIijQbIP5A/pub?gid=0&single=true&output=csv"
 URL_USUARIOS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOBIwmsv4S0lx3IA7x2K-q1dVBTtO37eUo35h6BmupREN_cVkCvt2XaOaYIijQbIP5A/pub?gid=83033184&single=true&output=csv"
 
-URL_SCRIPT_RESPUESTAS = "TU_URL_AQUÍ" 
-URL_LOGO = "https://raw.githubusercontent.com/YennyPa/AlanFinanzas/main/logo.png"
+# URL de tu Google Apps Script actualizada
+URL_SCRIPT_RESPUESTAS = "https://script.google.com/macros/s/AKfycbxAKxZxNvlABK-W8wOs4gtMsuGMDYqnkhI8VVn53wGUC2EJ09zN8_yanByKxK3wcGgdBw/exec" 
+
+# URL del Logo corregida (L mayúscula según tu GitHub)
+URL_LOGO = "https://raw.githubusercontent.com/YennyPa/AlanFinanzas/main/Logo.png"
 
 st.set_page_config(page_title="Alan Finanzas - Reto", page_icon="💰", layout="centered")
 
@@ -21,12 +24,12 @@ st.markdown(f"""
         background-color: #457B9D;
         color: white;
         text-align: center;
-        padding: 10px;
-        border-radius: 10px;
-        font-size: 24px;
+        padding: 12px;
+        border-radius: 12px;
+        font-size: 26px;
         font-weight: bold;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        margin-bottom: 25px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }}
     
     .titulo-finanzas {{ 
@@ -56,6 +59,7 @@ st.markdown(f"""
     .stButton>button {{
         border-radius: 12px;
         font-weight: bold;
+        width: 100%;
     }}
     </style>
     """, unsafe_allow_html=True)
@@ -67,16 +71,18 @@ def cargar_datos(url):
     return df
 
 def enviar_a_excel(email, dia, paso, respuesta):
-    if URL_SCRIPT_RESPUESTAS != "TU_URL_AQUÍ":
-        payload = {"email": email, "dia": int(dia), "paso": int(paso), "respuesta": respuesta}
-        try: requests.post(URL_SCRIPT_RESPUESTAS, data=json.dumps(payload))
-        except: pass
+    payload = {"email": email, "dia": int(dia), "paso": int(paso), "respuesta": respuesta}
+    try:
+        requests.post(URL_SCRIPT_RESPUESTAS, data=json.dumps(payload))
+    except:
+        pass
 
-# --- FLUJO ---
+# --- FLUJO DE LA APLICACIÓN ---
 if 'autenticado' not in st.session_state:
     st.image(URL_LOGO, width=220)
     st.title("Acceso al Reto")
     email_input = st.text_input("Ingresa tu correo:").lower().strip()
+    
     if st.button("Entrar al Reto"):
         df_users = cargar_datos(URL_USUARIOS)
         user_row = df_users[df_users['email'].str.lower().str.strip() == email_input]
@@ -86,12 +92,16 @@ if 'autenticado' not in st.session_state:
             st.session_state.usuario_email = email_input
             st.rerun()
         else:
-            st.error("Correo no registrado.")
+            st.error("Correo no registrado. Por favor verifica tu suscripción.")
 
 else:
+    # Carga de contenido
     df_content = cargar_datos(URL_CONTENIDO)
     pasos = df_content[df_content['dia'] == 2].sort_values('paso')
-    if 'indice' not in st.session_state: st.session_state.indice = 0
+    
+    if 'indice' not in st.session_state:
+        st.session_state.indice = 0
+    
     fila = pasos.iloc[st.session_state.indice]
 
     # --- CABECERA ---
@@ -106,15 +116,18 @@ else:
 
     st.divider() 
 
+    # --- BANNER FIJO ---
     st.markdown('<div class="dia-banner">☀️ Día 2</div>', unsafe_allow_html=True)
 
     # --- CONTENIDO ---
     st.markdown(f"<div class='titulo-finanzas'>{fila.get('titulo', '')}</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='subtitulo-finanzas'>{fila.get('subtitulo', '')}</div>", unsafe_allow_html=True)
     
+    # Procesar saltos de línea del Excel
     texto_final = str(fila.get('teoriatarea', '')).replace('\n', '<br>')
     st.markdown(f"<div class='texto-finanzas'>{texto_final}</div>", unsafe_allow_html=True)
     
+    # Manejo de Inputs
     resp_usuario = ""
     es_obligatorio = str(fila.get('tipoinput', '')).lower() == 'texto'
     
@@ -128,6 +141,7 @@ else:
     # --- NAVEGACIÓN ---
     st.write(" ")
     col_prev, col_next = st.columns([1, 1])
+    
     with col_prev:
         if st.session_state.indice > 0:
             if st.button("⬅️ Anterior"):
@@ -135,22 +149,20 @@ else:
                 st.rerun()
                 
     with col_next:
-        # Lógica de validación
-        texto_boton = "Siguiente ➡️" if st.session_state.indice < len(pasos) - 1 else "✅ ¡Terminar Día 2!"
+        label_boton = "Siguiente ➡️" if st.session_state.indice < len(pasos) - 1 else "✅ ¡Terminar Día 2!"
         
-        if st.button(texto_boton):
+        if st.button(label_boton):
             if es_obligatorio and not resp_usuario:
-                st.error("⚠️ Por favor, completa tu reflexión antes de continuar.")
+                st.warning("⚠️ Por favor, completa tu reflexión antes de continuar.")
             else:
-                # Si hay respuesta, se envía
+                # Guardar respuesta si existe
                 if resp_usuario:
                     enviar_a_excel(st.session_state.usuario_email, 2, fila['paso'], resp_usuario)
                 
-                # Si no es el último slide, avanza
+                # Avanzar o finalizar
                 if st.session_state.indice < len(pasos) - 1:
                     st.session_state.indice += 1
                     st.rerun()
                 else:
-                    # Si es el último, termina
                     st.balloons()
                     st.success("¡Excelente trabajo! Tus respuestas han sido guardadas.")
