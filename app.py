@@ -7,10 +7,10 @@ import json
 URL_CONTENIDO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOBIwmsv4S0lx3IA7x2K-q1dVBTtO37eUo35h6BmupREN_cVkCvt2XaOaYIijQbIP5A/pub?gid=0&single=true&output=csv"
 URL_USUARIOS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOBIwmsv4S0lx3IA7x2K-q1dVBTtO37eUo35h6BmupREN_cVkCvt2XaOaYIijQbIP5A/pub?gid=83033184&single=true&output=csv"
 
-# Tu URL de Google Apps Script
-URL_SCRIPT_RESPUESTAS = "https://script.google.com/macros/s/AKfycbzbaJgI_qEPL-9d3aMqxJ1vBZTrF11x4QGATA_IJio1tVhem9W19ixwb9GTYiuZKkWJuA/exec" 
+# Tu NUEVA URL de Google Apps Script
+URL_SCRIPT_RESPUESTAS = "https://script.google.com/macros/s/AKfycbxbcaeCE62aDqts1kWCaGzAXv38QFVWrqlGm0e_kWApQzd2YiyGY6C3RIvmWXmVZHP4HA/exec" 
 
-# URL del Logo (L mayúscula)
+# URL del Logo
 URL_LOGO = "https://raw.githubusercontent.com/YennyPa/AlanFinanzas/main/Logo.png"
 
 st.set_page_config(page_title="Alan Finanzas - Reto", page_icon="💰", layout="centered")
@@ -42,11 +42,17 @@ def cargar_datos(url):
     return df
 
 def enviar_a_excel(email, dia, paso, respuesta):
-    payload = {"email": email, "dia": int(dia), "paso": int(paso), "respuesta": respuesta}
+    payload = {
+        "email": str(email), 
+        "dia": int(dia), 
+        "paso": int(paso), 
+        "respuesta": str(respuesta)
+    }
     try:
-        requests.post(URL_SCRIPT_RESPUESTAS, data=json.dumps(payload))
-    except:
-        pass
+        # Enviamos como JSON para que Google Apps Script lo reciba sin problemas
+        requests.post(URL_SCRIPT_RESPUESTAS, json=payload, timeout=10)
+    except Exception as e:
+        st.error(f"Error de conexión: {e}")
 
 # --- FLUJO ---
 if 'autenticado' not in st.session_state:
