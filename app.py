@@ -17,7 +17,6 @@ st.markdown(f"""
     <style>
     .stApp {{ background-color: #FDFEFE; }}
     
-    /* Estilo del Banner del Día */
     .dia-banner {{
         background-color: #457B9D;
         color: white;
@@ -91,7 +90,6 @@ if 'autenticado' not in st.session_state:
 
 else:
     df_content = cargar_datos(URL_CONTENIDO)
-    # Filtramos por el día 2
     pasos = df_content[df_content['dia'] == 2].sort_values('paso')
     if 'indice' not in st.session_state: st.session_state.indice = 0
     fila = pasos.iloc[st.session_state.indice]
@@ -108,7 +106,6 @@ else:
 
     st.divider() 
 
-    # --- BANNER FIJO DEL DÍA ---
     st.markdown('<div class="dia-banner">☀️ Día 2</div>', unsafe_allow_html=True)
 
     # --- CONTENIDO ---
@@ -119,9 +116,11 @@ else:
     st.markdown(f"<div class='texto-finanzas'>{texto_final}</div>", unsafe_allow_html=True)
     
     resp_usuario = ""
-    if str(fila.get('tipoinput', '')).lower() == 'texto':
+    es_obligatorio = str(fila.get('tipoinput', '')).lower() == 'texto'
+    
+    if es_obligatorio:
         st.write("---")
-        resp_usuario = st.text_area("Escribe tu reflexión aquí:", key=f"in_{st.session_state.indice}", height=180)
+        resp_usuario = st.text_area("Escribe tu reflexión aquí (obligatorio):", key=f"in_{st.session_state.indice}", height=180).strip()
     
     if pd.notna(fila.get('audiourl')) and str(fila.get('audiourl')).startswith('http'):
         st.audio(fila.get('audiourl'))
@@ -134,14 +133,24 @@ else:
             if st.button("⬅️ Anterior"):
                 st.session_state.indice -= 1
                 st.rerun()
+                
     with col_next:
-        if st.session_state.indice < len(pasos) - 1:
-            if st.button("Siguiente ➡️"):
-                if resp_usuario: enviar_a_excel(st.session_state.usuario_email, 2, fila['paso'], resp_usuario)
-                st.session_state.indice += 1
-                st.rerun()
-        else:
-            if st.button("✅ ¡Terminar Día 2!"):
-                if resp_usuario: enviar_a_excel(st.session_state.usuario_email, 2, fila['paso'], resp_usuario)
-                st.balloons()
-                st.success("¡Excelente trabajo! Tus respuestas han sido guardadas.")
+        # Lógica de validación
+        texto_boton = "Siguiente ➡️" if st.session_state.indice < len(pasos) - 1 else "✅ ¡Terminar Día 2!"
+        
+        if st.button(texto_boton):
+            if es_obligatorio and not resp_usuario:
+                st.error("⚠️ Por favor, completa tu reflexión antes de continuar.")
+            else:
+                # Si hay respuesta, se envía
+                if resp_usuario:
+                    enviar_a_excel(st.session_state.usuario_email, 2, fila['paso'], resp_usuario)
+                
+                # Si no es el último slide, avanza
+                if st.session_state.indice < len(pasos) - 1:
+                    st.session_state.indice += 1
+                    st.rerun()
+                else:
+                    # Si es el último, termina
+                    st.balloons()
+                    st.success("¡Excelente trabajo! Tus respuestas han sido guardadas.")
