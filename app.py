@@ -11,7 +11,7 @@ URL_USUARIOS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOBI
 URL_SCRIPT_RESPUESTAS = "TU_URL_AQUÍ" 
 
 # --- URL DE TU LOGO EN GITHUB ---
-URL_LOGO = "https://raw.githubusercontent.com/YennyPa/AlanFinanzas/main/Logo%20de%20Alan%20Finanzas.png"
+URL_LOGO = "https://raw.githubusercontent.com/YennyPa/AlanFinanzas/main/Logo.png"
 
 st.set_page_config(page_title="Alan Finanzas - Reto", page_icon="💰", layout="centered")
 
