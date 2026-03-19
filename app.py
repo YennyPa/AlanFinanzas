@@ -7,10 +7,10 @@ import json
 URL_CONTENIDO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOBIwmsv4S0lx3IA7x2K-q1dVBTtO37eUo35h6BmupREN_cVkCvt2XaOaYIijQbIP5A/pub?gid=0&single=true&output=csv"
 URL_USUARIOS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOBIwmsv4S0lx3IA7x2K-q1dVBTtO37eUo35h6BmupREN_cVkCvt2XaOaYIijQbIP5A/pub?gid=83033184&single=true&output=csv"
 
-# URL de tu Google Apps Script actualizada
+# Tu URL de Google Apps Script
 URL_SCRIPT_RESPUESTAS = "https://script.google.com/macros/s/AKfycbxAKxZxNvlABK-W8wOs4gtMsuGMDYqnkhI8VVn53wGUC2EJ09zN8_yanByKxK3wcGgdBw/exec" 
 
-# URL del Logo corregida (L mayúscula según tu GitHub)
+# URL del Logo (L mayúscula)
 URL_LOGO = "https://raw.githubusercontent.com/YennyPa/AlanFinanzas/main/Logo.png"
 
 st.set_page_config(page_title="Alan Finanzas - Reto", page_icon="💰", layout="centered")
@@ -19,48 +19,19 @@ st.set_page_config(page_title="Alan Finanzas - Reto", page_icon="💰", layout="
 st.markdown(f"""
     <style>
     .stApp {{ background-color: #FDFEFE; }}
-    
     .dia-banner {{
         background-color: #457B9D;
         color: white;
         text-align: center;
-        padding: 12px;
-        border-radius: 12px;
-        font-size: 26px;
+        padding: 10px;
+        border-radius: 10px;
+        font-size: 24px;
         font-weight: bold;
-        margin-bottom: 25px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    }}
-    
-    .titulo-finanzas {{ 
-        font-size: 32px !important; 
-        font-weight: bold; 
-        color: #8B5A2B; 
-        margin-top: 10px !important;
-        margin-bottom: 10px;
-        line-height: 1.2;
-    }}
-    
-    .subtitulo-finanzas {{ 
-        font-size: 19px !important; 
-        color: #457B9D; 
-        font-style: italic; 
-        margin-bottom: 25px;
-        line-height: 1.4;
-    }}
-    
-    .texto-finanzas {{ 
-        font-size: 21px !important; 
-        line-height: 1.7; 
-        color: #2E4053;
         margin-bottom: 20px;
     }}
-
-    .stButton>button {{
-        border-radius: 12px;
-        font-weight: bold;
-        width: 100%;
-    }}
+    .titulo-finanzas {{ font-size: 32px !important; font-weight: bold; color: #8B5A2B; }}
+    .texto-finanzas {{ font-size: 21px !important; line-height: 1.7; color: #2E4053; }}
+    .stButton>button {{ border-radius: 12px; font-weight: bold; }}
     </style>
     """, unsafe_allow_html=True)
 
@@ -77,12 +48,11 @@ def enviar_a_excel(email, dia, paso, respuesta):
     except:
         pass
 
-# --- FLUJO DE LA APLICACIÓN ---
+# --- FLUJO ---
 if 'autenticado' not in st.session_state:
     st.image(URL_LOGO, width=220)
     st.title("Acceso al Reto")
     email_input = st.text_input("Ingresa tu correo:").lower().strip()
-    
     if st.button("Entrar al Reto"):
         df_users = cargar_datos(URL_USUARIOS)
         user_row = df_users[df_users['email'].str.lower().str.strip() == email_input]
@@ -92,42 +62,31 @@ if 'autenticado' not in st.session_state:
             st.session_state.usuario_email = email_input
             st.rerun()
         else:
-            st.error("Correo no registrado. Por favor verifica tu suscripción.")
+            st.error("Correo no registrado.")
 
 else:
-    # Carga de contenido
     df_content = cargar_datos(URL_CONTENIDO)
     pasos = df_content[df_content['dia'] == 2].sort_values('paso')
-    
-    if 'indice' not in st.session_state:
-        st.session_state.indice = 0
-    
+    if 'indice' not in st.session_state: st.session_state.indice = 0
     fila = pasos.iloc[st.session_state.indice]
 
-    # --- CABECERA ---
+    # Cabecera
     c1, c2 = st.columns([1, 1])
-    with c1:
-        st.image(URL_LOGO, width=140)
-    with c2:
+    with c1: st.image(URL_LOGO, width=140)
+    with c2: 
         st.write(f"Hola, **{st.session_state['usuario_nombre']}** 👋")
         if st.button("Cerrar Sesión"):
             del st.session_state['autenticado']
             st.rerun()
 
     st.divider() 
-
-    # --- BANNER FIJO ---
     st.markdown('<div class="dia-banner">☀️ Día 2</div>', unsafe_allow_html=True)
 
-    # --- CONTENIDO ---
+    # Contenido
     st.markdown(f"<div class='titulo-finanzas'>{fila.get('titulo', '')}</div>", unsafe_allow_html=True)
-    st.markdown(f"<div class='subtitulo-finanzas'>{fila.get('subtitulo', '')}</div>", unsafe_allow_html=True)
-    
-    # Procesar saltos de línea del Excel
     texto_final = str(fila.get('teoriatarea', '')).replace('\n', '<br>')
     st.markdown(f"<div class='texto-finanzas'>{texto_final}</div>", unsafe_allow_html=True)
     
-    # Manejo de Inputs
     resp_usuario = ""
     es_obligatorio = str(fila.get('tipoinput', '')).lower() == 'texto'
     
@@ -138,10 +97,9 @@ else:
     if pd.notna(fila.get('audiourl')) and str(fila.get('audiourl')).startswith('http'):
         st.audio(fila.get('audiourl'))
 
-    # --- NAVEGACIÓN ---
+    # Navegación
     st.write(" ")
     col_prev, col_next = st.columns([1, 1])
-    
     with col_prev:
         if st.session_state.indice > 0:
             if st.button("⬅️ Anterior"):
@@ -149,17 +107,14 @@ else:
                 st.rerun()
                 
     with col_next:
-        label_boton = "Siguiente ➡️" if st.session_state.indice < len(pasos) - 1 else "✅ ¡Terminar Día 2!"
-        
-        if st.button(label_boton):
+        texto_btn = "Siguiente ➡️" if st.session_state.indice < len(pasos) - 1 else "✅ ¡Terminar Día 2!"
+        if st.button(texto_btn):
             if es_obligatorio and not resp_usuario:
-                st.warning("⚠️ Por favor, completa tu reflexión antes de continuar.")
+                st.error("⚠️ Por favor, completa tu reflexión antes de continuar.")
             else:
-                # Guardar respuesta si existe
                 if resp_usuario:
                     enviar_a_excel(st.session_state.usuario_email, 2, fila['paso'], resp_usuario)
                 
-                # Avanzar o finalizar
                 if st.session_state.indice < len(pasos) - 1:
                     st.session_state.indice += 1
                     st.rerun()
