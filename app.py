@@ -7,10 +7,7 @@ import json
 URL_CONTENIDO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOBIwmsv4S0lx3IA7x2K-q1dVBTtO37eUo35h6BmupREN_cVkCvt2XaOaYIijQbIP5A/pub?gid=0&single=true&output=csv"
 URL_USUARIOS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOBIwmsv4S0lx3IA7x2K-q1dVBTtO37eUo35h6BmupREN_cVkCvt2XaOaYIijQbIP5A/pub?gid=83033184&single=true&output=csv"
 
-# --- REEMPLAZA ESTO CON TU URL DE APPS SCRIPT ---
 URL_SCRIPT_RESPUESTAS = "TU_URL_AQUÍ" 
-
-# --- URL DEL LOGO ---
 URL_LOGO = "https://raw.githubusercontent.com/YennyPa/AlanFinanzas/main/logo.png"
 
 st.set_page_config(page_title="Alan Finanzas - Reto", page_icon="💰", layout="centered")
@@ -19,6 +16,19 @@ st.set_page_config(page_title="Alan Finanzas - Reto", page_icon="💰", layout="
 st.markdown(f"""
     <style>
     .stApp {{ background-color: #FDFEFE; }}
+    
+    /* Estilo del Banner del Día */
+    .dia-banner {{
+        background-color: #457B9D;
+        color: white;
+        text-align: center;
+        padding: 10px;
+        border-radius: 10px;
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }}
     
     .titulo-finanzas {{ 
         font-size: 32px !important; 
@@ -44,7 +54,6 @@ st.markdown(f"""
         margin-bottom: 20px;
     }}
 
-    /* Estilo para los botones de navegación */
     .stButton>button {{
         border-radius: 12px;
         font-weight: bold;
@@ -82,6 +91,7 @@ if 'autenticado' not in st.session_state:
 
 else:
     df_content = cargar_datos(URL_CONTENIDO)
+    # Filtramos por el día 2
     pasos = df_content[df_content['dia'] == 2].sort_values('paso')
     if 'indice' not in st.session_state: st.session_state.indice = 0
     fila = pasos.iloc[st.session_state.indice]
@@ -96,13 +106,15 @@ else:
             del st.session_state['autenticado']
             st.rerun()
 
-    st.divider() # Línea estética sutil
+    st.divider() 
 
-    # --- CONTENIDO (SIN MARCO) ---
+    # --- BANNER FIJO DEL DÍA ---
+    st.markdown('<div class="dia-banner">☀️ Día 2</div>', unsafe_allow_html=True)
+
+    # --- CONTENIDO ---
     st.markdown(f"<div class='titulo-finanzas'>{fila.get('titulo', '')}</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='subtitulo-finanzas'>{fila.get('subtitulo', '')}</div>", unsafe_allow_html=True)
     
-    # Aplicar saltos de línea de Excel
     texto_final = str(fila.get('teoriatarea', '')).replace('\n', '<br>')
     st.markdown(f"<div class='texto-finanzas'>{texto_final}</div>", unsafe_allow_html=True)
     
