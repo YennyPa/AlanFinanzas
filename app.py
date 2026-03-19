@@ -8,7 +8,50 @@ URL_CONTENIDO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOB
 URL_USUARIOS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOBIwmsv4S0lx3IA7x2K-q1dVBTtO37eUo35h6BmupREN_cVkCvt2XaOaYIijQbIP5A/pub?gid=83033184&single=true&output=csv"
 
 # Tu NUEVA URL de Google Apps Script
-URL_SCRIPT_RESPUESTAS = "https://script.google.com/macros/s/AKfycbxbcaeCE62aDqts1kWCaGzAXv38QFVWrqlGm0e_kWApQzd2YiyGY6C3RIvmWXmVZHP4HA/exec" 
+URL_SCRIPT_RESPUESTAS = "var ID_EXCEL = "1jMPh6c3HqOk9bYCTv26Cd08nFoAV0yKtrnf4M8eu_xM";
+
+// Esta función es para que Streamlit envíe los datos
+function doPost(e) {
+  return procesarDatos(e);
+}
+
+// Esta función es para que el navegador no dé error
+function doGet(e) {
+  return procesarDatos(e);
+}
+
+// Función maestra que escribe en el Excel
+function procesarDatos(e) {
+  var ss = SpreadsheetApp.openById(ID_EXCEL);
+  var sheet = ss.getSheets()[0]; // Escribe en la primera pestaña
+  
+  var email, dia, paso, respuesta;
+  
+  try {
+    // Caso 1: Los datos vienen de Streamlit (JSON)
+    if (e.postData && e.postData.contents) {
+      var data = JSON.parse(e.postData.contents);
+      email = data.email;
+      dia = data.dia;
+      paso = data.paso;
+      respuesta = data.respuesta;
+    } 
+    // Caso 2: Los datos vienen del navegador (URL)
+    else {
+      email = e.parameter.email;
+      dia = e.parameter.dia;
+      paso = e.parameter.paso;
+      respuesta = e.parameter.respuesta;
+    }
+
+    sheet.appendRow([email, dia, paso, respuesta, new Date()]);
+    
+    return ContentService.createTextOutput("Éxito: Datos guardados").setMimeType(ContentService.MimeType.TEXT);
+    
+  } catch (error) {
+    return ContentService.createTextOutput("Error: " + error.message).setMimeType(ContentService.MimeType.TEXT);
+  }
+}" 
 
 # URL del Logo
 URL_LOGO = "https://raw.githubusercontent.com/YennyPa/AlanFinanzas/main/Logo.png"
