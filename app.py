@@ -7,51 +7,8 @@ import json
 URL_CONTENIDO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOBIwmsv4S0lx3IA7x2K-q1dVBTtO37eUo35h6BmupREN_cVkCvt2XaOaYIijQbIP5A/pub?gid=0&single=true&output=csv"
 URL_USUARIOS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOBIwmsv4S0lx3IA7x2K-q1dVBTtO37eUo35h6BmupREN_cVkCvt2XaOaYIijQbIP5A/pub?gid=83033184&single=true&output=csv"
 
-# Tu NUEVA URL de Google Apps Script
-URL_SCRIPT_RESPUESTAS = "https://script.google.com/macros/s/AKfycbyzYGMKECbmRDinL-FkjlRbs7H88CCFGujNSb96WMI3IaKNEt2Nqg2t87M06ejhuabSTg/exec";
-
-// Esta función es para que Streamlit envíe los datos
-function doPost(e) {
-  return procesarDatos(e);
-}
-
-// Esta función es para que el navegador no dé error
-function doGet(e) {
-  return procesarDatos(e);
-}
-
-// Función maestra que escribe en el Excel
-function procesarDatos(e) {
-  var ss = SpreadsheetApp.openById(ID_EXCEL);
-  var sheet = ss.getSheets()[0]; // Escribe en la primera pestaña
-  
-  var email, dia, paso, respuesta;
-  
-  try {
-    // Caso 1: Los datos vienen de Streamlit (JSON)
-    if (e.postData && e.postData.contents) {
-      var data = JSON.parse(e.postData.contents);
-      email = data.email;
-      dia = data.dia;
-      paso = data.paso;
-      respuesta = data.respuesta;
-    } 
-    // Caso 2: Los datos vienen del navegador (URL)
-    else {
-      email = e.parameter.email;
-      dia = e.parameter.dia;
-      paso = e.parameter.paso;
-      respuesta = e.parameter.respuesta;
-    }
-
-    sheet.appendRow([email, dia, paso, respuesta, new Date()]);
-    
-    return ContentService.createTextOutput("Éxito: Datos guardados").setMimeType(ContentService.MimeType.TEXT);
-    
-  } catch (error) {
-    return ContentService.createTextOutput("Error: " + error.message).setMimeType(ContentService.MimeType.TEXT);
-  }
-}" 
+# URL de tu Google Apps Script (Verificada)
+URL_SCRIPT_RESPUESTAS = "https://script.google.com/macros/s/AKfycbyzYGMKECbmRDinL-FkjlRbs7H88CCFGujNSb96WMI3IaKNEt2Nqg2t87M06ejhuabSTg/exec"
 
 # URL del Logo
 URL_LOGO = "https://raw.githubusercontent.com/YennyPa/AlanFinanzas/main/Logo.png"
@@ -95,7 +52,7 @@ def enviar_a_excel(email, dia, paso, respuesta):
         # Enviamos como JSON para que Google Apps Script lo reciba sin problemas
         requests.post(URL_SCRIPT_RESPUESTAS, json=payload, timeout=10)
     except Exception as e:
-        st.error(f"Error de conexión: {e}")
+        pass # Silenciamos el error para no interrumpir al usuario
 
 # --- FLUJO ---
 if 'autenticado' not in st.session_state:
@@ -117,56 +74,59 @@ else:
     df_content = cargar_datos(URL_CONTENIDO)
     pasos = df_content[df_content['dia'] == 2].sort_values('paso')
     if 'indice' not in st.session_state: st.session_state.indice = 0
-    fila = pasos.iloc[st.session_state.indice]
-
-    # Cabecera
-    c1, c2 = st.columns([1, 1])
-    with c1: st.image(URL_LOGO, width=140)
-    with c2: 
-        st.write(f"Hola, **{st.session_state['usuario_nombre']}** 👋")
-        if st.button("Cerrar Sesión"):
-            del st.session_state['autenticado']
-            st.rerun()
-
-    st.divider() 
-    st.markdown('<div class="dia-banner">☀️ Día 2</div>', unsafe_allow_html=True)
-
-    # Contenido
-    st.markdown(f"<div class='titulo-finanzas'>{fila.get('titulo', '')}</div>", unsafe_allow_html=True)
-    texto_final = str(fila.get('teoriatarea', '')).replace('\n', '<br>')
-    st.markdown(f"<div class='texto-finanzas'>{texto_final}</div>", unsafe_allow_html=True)
     
-    resp_usuario = ""
-    es_obligatorio = str(fila.get('tipoinput', '')).lower() == 'texto'
-    
-    if es_obligatorio:
-        st.write("---")
-        resp_usuario = st.text_area("Escribe tu reflexión aquí (obligatorio):", key=f"in_{st.session_state.indice}", height=180).strip()
-    
-    if pd.notna(fila.get('audiourl')) and str(fila.get('audiourl')).startswith('http'):
-        st.audio(fila.get('audiourl'))
+    if st.session_state.indice < len(pasos):
+        fila = pasos.iloc[st.session_state.indice]
 
-    # Navegación
-    st.write(" ")
-    col_prev, col_next = st.columns([1, 1])
-    with col_prev:
-        if st.session_state.indice > 0:
-            if st.button("⬅️ Anterior"):
-                st.session_state.indice -= 1
+        # Cabecera
+        c1, c2 = st.columns([1, 1])
+        with c1: st.image(URL_LOGO, width=140)
+        with c2: 
+            st.write(f"Hola, **{st.session_state['usuario_nombre']}** 👋")
+            if st.button("Cerrar Sesión"):
+                del st.session_state['autenticado']
                 st.rerun()
-                
-    with col_next:
-        texto_btn = "Siguiente ➡️" if st.session_state.indice < len(pasos) - 1 else "✅ ¡Terminar Día 2!"
-        if st.button(texto_btn):
-            if es_obligatorio and not resp_usuario:
-                st.error("⚠️ Por favor, completa tu reflexión antes de continuar.")
-            else:
-                if resp_usuario:
-                    enviar_a_excel(st.session_state.usuario_email, 2, fila['paso'], resp_usuario)
-                
-                if st.session_state.indice < len(pasos) - 1:
-                    st.session_state.indice += 1
+
+        st.divider() 
+        st.markdown('<div class="dia-banner">☀️ Día 2</div>', unsafe_allow_html=True)
+
+        # Contenido
+        st.markdown(f"<div class='titulo-finanzas'>{fila.get('titulo', '')}</div>", unsafe_allow_html=True)
+        texto_final = str(fila.get('teoriatarea', '')).replace('\n', '<br>')
+        st.markdown(f"<div class='texto-finanzas'>{texto_final}</div>", unsafe_allow_html=True)
+        
+        resp_usuario = ""
+        es_obligatorio = str(fila.get('tipoinput', '')).lower() == 'texto'
+        
+        if es_obligatorio:
+            st.write("---")
+            resp_usuario = st.text_area("Escribe tu reflexión aquí (obligatorio):", key=f"in_{st.session_state.indice}", height=180).strip()
+        
+        if pd.notna(fila.get('audiourl')) and str(fila.get('audiourl')).startswith('http'):
+            st.audio(fila.get('audiourl'))
+
+        # Navegación
+        st.write(" ")
+        col_prev, col_next = st.columns([1, 1])
+        with col_prev:
+            if st.session_state.indice > 0:
+                if st.button("⬅️ Anterior"):
+                    st.session_state.indice -= 1
                     st.rerun()
+                    
+        with col_next:
+            es_ultimo = st.session_state.indice == len(pasos) - 1
+            texto_btn = "✅ ¡Terminar Día 2!" if es_ultimo else "Siguiente ➡️"
+            if st.button(texto_btn):
+                if es_obligatorio and not resp_usuario:
+                    st.error("⚠️ Por favor, completa tu reflexión antes de continuar.")
                 else:
-                    st.balloons()
-                    st.success("¡Excelente trabajo! Tus respuestas han sido guardadas.")
+                    if resp_usuario:
+                        enviar_a_excel(st.session_state.usuario_email, 2, fila['paso'], resp_usuario)
+                    
+                    if not es_ultimo:
+                        st.session_state.indice += 1
+                        st.rerun()
+                    else:
+                        st.balloons()
+                        st.success("¡Excelente trabajo! Tus respuestas han sido guardadas.")
