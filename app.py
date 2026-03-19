@@ -22,22 +22,28 @@ if 'autenticado' not in st.session_state:
     if st.button("Entrar"):
         try:
             df_users = cargar_datos(URL_USUARIOS)
-            # Buscamos el correo ignorando mayúsculas y espacios
+            # Limpiamos los nombres de las columnas por si acaso
+            df_users.columns = [c.strip() for c in df_users.columns]
+            
+            # Buscamos el correo (limpiando espacios y minúsculas)
             user_row = df_users[df_users['Email'].str.lower().str.strip() == email_input]
             
             if not user_row.empty:
+                # Obtenemos el estado y el nombre
                 estado = str(user_row.iloc[0]['Estado_Calculado']).strip().upper()
-                if estado == "ACTIVO":
+                nombre = user_row.iloc[0]['Nombre_Completo']
+                
+                if "ACTIVO" in estado:
                     st.session_state['autenticado'] = True
-                    st.session_state['usuario_nombre'] = user_row.iloc[0]['Nombre_Completo']
+                    st.session_state['usuario_nombre'] = nombre
                     st.session_state['usuario_email'] = email_input
                     st.rerun()
                 else:
-                    st.error(f"⏳ Acceso: {estado}. Contacta a tu Coach.")
+                    st.error(f"⏳ Tu acceso está: {estado}. Contacta a tu Coach.")
             else:
-                st.warning("🚫 Correo no encontrado en la lista de Usuarios.")
+                st.warning("🚫 Correo no encontrado. Revisa que esté igual que en el Excel.")
         except Exception as e:
-            st.error(f"Error de conexión: {e}")
+            st.error(f"Error técnico: No encontré la columna necesaria. Revisa los encabezados en tu Excel.")
 
 # --- APP PRINCIPAL ---
 else:
