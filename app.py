@@ -3,24 +3,23 @@ import pandas as pd
 import requests
 import re
 
-# --- CONFIGURACIÓN DE RUTAS ---
+# --- CONFIGURACIÓN ---
 URL_CONTENIDO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOBIwmsv4S0lx3IA7x2K-q1dVBTtO37eUo35h6BmupREN_cVkCvt2XaOaYIijQbIP5A/pub?gid=0&single=true&output=csv"
 URL_USUARIOS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOBIwmsv4S0lx3IA7x2K-q1dVBTtO37eUo35h6BmupREN_cVkCvt2XaOaYIijQbIP5A/pub?gid=83033184&single=true&output=csv"
 URL_RESPUESTAS_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOBIwmsv4S0lx3IA7x2K-q1dVBTtO37eUo35h6BmupREN_cVkCvt2XaOaYIijQbIP5A/pub?gid=1626466961&single=true&output=csv"
 URL_SCRIPT_RESPUESTAS = "https://script.google.com/macros/s/AKfycbzC0gS3sMZpY0H63ad60ufa0hF1vZ9FjKsRyamXGTNYJrBfReU-Hi9VS8uwFnakDKiL9g/exec"
+# Intentemos con la URL directa de renderizado de GitHub
 URL_LOGO = "https://raw.githubusercontent.com/YennyPa/AlanFinanzas/main/Logo.png"
 
 st.set_page_config(page_title="Alan Finanzas", page_icon="💰", layout="centered")
 
-# --- FUNCIONES CRÍTICAS ---
+# --- FUNCIONES ---
 def obtener_embed_video(url):
-    """Convierte link de Drive en un iframe reproducible"""
     if 'drive.google.com' in str(url):
-        # Extraer ID del video
         match = re.search(r'/d/([-\w]+)', url) or re.search(r'id=([-\w]+)', url)
         if match:
             file_id = match.group(1) or match.group(2)
-            return f'<iframe src="https://drive.google.com/file/d/{file_id}/preview" width="100%" height="360" allow="autoplay"></iframe>'
+            return f'<iframe src="https://drive.google.com/file/d/{file_id}/preview" width="100%" height="360" frameborder="0" allow="autoplay"></iframe>'
     return None
 
 @st.cache_data(ttl=2)
@@ -31,110 +30,117 @@ def cargar_datos(url):
         return df
     except: return pd.DataFrame()
 
-# --- INICIALIZACIÓN DE SESIÓN ---
+# --- INICIALIZACIÓN ---
 if 'autenticado' not in st.session_state: st.session_state.autenticado = False
 if 'resp_temporales' not in st.session_state: st.session_state.resp_temporales = []
 if 'indice' not in st.session_state: st.session_state.indice = 0
 
-# --- DISEÑO ---
+# --- ESTILO ---
 st.markdown("""
     <style>
     .stApp { background-color: #FDFEFE; }
-    .dia-banner { background-color: #457B9D; color: white; text-align: center; padding: 12px; border-radius: 10px; font-size: 22px; font-weight: bold; margin-bottom: 20px; }
-    .titulo-finanzas { font-size: 26px !important; font-weight: bold; color: #8B5A2B; margin-top: 15px; }
-    .texto-finanzas { font-size: 18px !important; line-height: 1.6; color: #2E4053; }
+    .dia-banner { background-color: #457B9D; color: white; text-align: center; padding: 15px; border-radius: 12px; font-size: 24px; font-weight: bold; margin-bottom: 20px; }
+    .titulo-finanzas { font-size: 28px !important; font-weight: bold; color: #8B5A2B; }
+    .texto-finanzas { font-size: 19px !important; line-height: 1.7; color: #2E4053; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- FLUJO PRINCIPAL ---
+# --- NAVEGACIÓN ---
 if not st.session_state.autenticado:
-    # Intento seguro de Logo
-    try: st.image(URL_LOGO, width=180)
-    except: st.title("💰 Alan Finanzas")
+    # Mostramos el logo solo si carga bien, si no, texto limpio
+    col_l, col_r = st.columns([1, 2])
+    with col_l:
+        try: st.image(URL_LOGO, use_container_width=True)
+        except: st.write("💰")
+    with col_r:
+        st.title("Alan Finanzas")
     
-    email_input = st.text_input("Tu correo:").lower().strip()
-    if st.button("Acceder al Reto"):
-        df_users = cargar_datos(URL_USUARIOS)
-        if not df_users.empty and email_input in df_users['email'].values:
+    email_i = st.text_input("Ingresa tu correo:").lower().strip()
+    if st.button("Entrar al Reto"):
+        df_u = cargar_datos(URL_USUARIOS)
+        if not df_u.empty and email_i in df_u['email'].values:
             st.session_state.autenticado = True
-            st.session_state.usuario_email = email_input
-            st.session_state.usuario_nombre = df_users[df_users['email'] == email_input]['nombrecompleto'].iloc[0]
+            st.session_state.usuario_email = email_i
+            st.session_state.usuario_nombre = df_u[df_u['email'] == email_i]['nombrecompleto'].iloc[0]
             
-            # LÓGICA DE PROGRESO: Siempre prioriza el Día 1 si no hay registros
-            df_resp = cargar_datos(URL_RESPUESTAS_CSV)
-            if not df_resp.empty and 'email' in df_resp.columns:
-                user_resps = df_resp[df_resp['email'] == email_input]
-                if user_resps.empty:
-                    st.session_state.dia_actual = 1
-                else:
-                    st.session_state.dia_actual = int(user_resps['dia'].max() + 1)
+            # DETERMINAR DÍA ACTUAL
+            df_r = cargar_datos(URL_RESPUESTAS_CSV)
+            if not df_r.empty and 'email' in df_r.columns:
+                mis_resp = df_r[df_r['email'] == email_i]
+                # Si ya respondió hoy, el día actual es el máximo + 1
+                st.session_state.dia_actual = int(mis_resp['dia'].max() + 1) if not mis_resp.empty else 1
             else:
                 st.session_state.dia_actual = 1
-            
-            st.session_state.indice = 0
             st.rerun()
-        else: st.error("Email no encontrado en la base de alumnos.")
+        else: st.error("Usuario no encontrado.")
 
 else:
-    df_content = cargar_datos(URL_CONTENIDO)
-    pasos = df_content[df_content['dia'] == st.session_state.dia_actual].sort_values('paso')
+    df_c = cargar_datos(URL_CONTENIDO)
+    pasos = df_c[df_c['dia'] == st.session_state.dia_actual].sort_values('paso')
     
+    # Header con manejo de error de logo
+    c1, c2 = st.columns([1, 3])
+    with c1:
+        try: st.image(URL_LOGO, width=80)
+        except: st.write("💰")
+    with c2: st.write(f"Hola, **{st.session_state.usuario_nombre}** | Día {st.session_state.dia_actual}")
+
     if pasos.empty:
-        st.success("¡Felicidades! Has completado el contenido de hoy.")
-        if st.button("Salir"):
+        st.balloons()
+        st.markdown(f"### ✨ ¡Día {st.session_state.dia_actual - 1} completado!")
+        st.write("Has terminado tus tareas por hoy. Regresa mañana para el siguiente nivel de tu libertad financiera.")
+        if st.button("Cerrar Sesión"):
             st.session_state.autenticado = False
             st.rerun()
     else:
         fila = pasos.iloc[st.session_state.indice]
-        
-        # Header con Logo Seguro
-        c1, c2 = st.columns([1, 1])
-        with c1: 
-            try: st.image(URL_LOGO, width=100)
-            except: st.write("💰 **Alan**")
-        with c2: st.write(f"Hola, **{st.session_state.usuario_nombre}**")
-
         st.markdown(f'<div class="dia-banner">☀️ Día {st.session_state.dia_actual}</div>', unsafe_allow_html=True)
+        
         st.markdown(f"<div class='titulo-finanzas'>{fila.get('titulo', '')}</div>", unsafe_allow_html=True)
+        st.markdown(f"**{fila.get('subtitulo', '')}**")
         
-        t_html = str(fila.get('teoriatarea','')).replace('\n', '<br>')
-        st.markdown(f"<div class='texto-finanzas'>{t_html}</div>", unsafe_allow_html=True)
+        c_html = str(fila.get('teoriatarea','')).replace('\n', '<br>')
+        st.markdown(f"<div class='texto-finanzas'>{c_html}</div>", unsafe_allow_html=True)
         
-        # VIDEO (Usando iframe para Drive)
-        video_url = fila.get('videourl')
-        if pd.notna(video_url):
-            embed_code = obtener_embed_video(video_url)
-            if embed_code:
-                st.components.v1.html(embed_code, height=380)
-            else:
-                st.video(video_url) # Fallback a video estándar
+        # Video y Audio
+        v_url = fila.get('videourl')
+        if pd.notna(v_url):
+            embed = obtener_embed_video(v_url)
+            if embed: st.components.v1.html(embed, height=380)
+        
+        if pd.notna(fila.get('audiourl')): st.audio(fila.get('audiourl'))
 
-        if pd.notna(fila.get('audiourl')):
-            st.audio(fila.get('audiourl'))
-
-        resp_u = ""
+        # Input
+        resp_val = ""
         if str(fila.get('tipoinput','')).lower() == 'texto':
-            resp_u = st.text_area("Escribe aquí:", key=f"p_{st.session_state.dia_actual}_{st.session_state.indice}")
+            resp_val = st.text_area("Tu reflexión:", key=f"in_{st.session_state.dia_actual}_{st.session_state.indice}")
 
-        # NAVEGACIÓN
-        es_ultimo = st.session_state.indice == len(pasos) - 1
-        if st.button("Siguiente ➡️" if not es_ultimo else "Guardar Día"):
-            st.session_state.resp_temporales.append({
-                "email": str(st.session_state.usuario_email),
-                "dia": int(st.session_state.dia_actual),
-                "paso": int(fila['paso']),
-                "respuesta": str(resp_u)
-            })
-            
-            if not es_ultimo:
-                st.session_state.indice += 1
-                st.rerun()
-            else:
-                with st.spinner('Registrando...'):
-                    for r in st.session_state.resp_temporales:
-                        requests.post(URL_SCRIPT_RESPUESTAS, json=r, timeout=10)
-                st.balloons()
-                st.session_state.dia_actual += 1
-                st.session_state.indice = 0
-                st.session_state.resp_temporales = []
-                st.rerun()
+        # Botones
+        col_izq, col_der = st.columns([1,1])
+        with col_der:
+            es_fin = st.session_state.indice == len(pasos) - 1
+            if st.button("Siguiente ➡️" if not es_fin else "Finalizar y Enviar"):
+                st.session_state.resp_temporales.append({
+                    "email": str(st.session_state.usuario_email),
+                    "dia": int(st.session_state.dia_actual),
+                    "paso": int(fila['paso']),
+                    "respuesta": str(resp_val)
+                })
+                
+                if not es_fin:
+                    st.session_state.indice += 1
+                    st.rerun()
+                else:
+                    with st.spinner('Guardando tu progreso...'):
+                        for r in st.session_state.resp_temporales:
+                            requests.post(URL_SCRIPT_RESPUESTAS, json=r, timeout=10)
+                    st.session_state.dia_actual += 1
+                    st.session_state.indice = 0
+                    st.session_state.resp_temporales = []
+                    st.rerun()
+        with col_izq:
+            if st.session_state.indice > 0:
+                if st.button("⬅️ Anterior"):
+                    st.session_state.indice -= 1
+                    st.session_state.resp_temporales.pop() # Quitamos la última para no duplicar
+                    st.rerun()
