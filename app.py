@@ -8,7 +8,7 @@ URL_CONTENIDO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOB
 URL_USUARIOS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOBIwmsv4S0lx3IA7x2K-q1dVBTtO37eUo35h6BmupREN_cVkCvt2XaOaYIijQbIP5A/pub?gid=83033184&single=true&output=csv"
 
 # URL de tu Google Apps Script (Verificada)
-URL_SCRIPT_RESPUESTAS = "https://script.google.com/macros/s/AKfycbyzYGMKECbmRDinL-FkjlRbs7H88CCFGujNSb96WMI3IaKNEt2Nqg2t87M06ejhuabSTg/exec"
+##URL_SCRIPT_RESPUESTAS = "https://script.google.com/macros/s/AKfycbyzYGMKECbmRDinL-FkjlRbs7H88CCFGujNSb96WMI3IaKNEt2Nqg2t87M06ejhuabSTg/exec"
 
 # URL del Logo
 URL_LOGO = "https://raw.githubusercontent.com/YennyPa/AlanFinanzas/main/Logo.png"
