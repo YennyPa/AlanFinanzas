@@ -1,6 +1,11 @@
 import streamlit as st
 import pandas as pd
 import requests
+# --- SEGURIDAD DE VARIABLES ---
+if 'resp_temporales' not in st.session_state:
+    st.session_state.resp_temporales = []
+if 'indice' not in st.session_state:
+    st.session_state.indice = 0
 
 # --- CONFIGURACIÓN ---
 URL_CONTENIDO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOBIwmsv4S0lx3IA7x2K-q1dVBTtO37eUo35h6BmupREN_cVkCvt2XaOaYIijQbIP5A/pub?gid=0&single=true&output=csv"
