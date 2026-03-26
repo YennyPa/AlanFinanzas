@@ -41,6 +41,7 @@ def cargar_datos(url):
     df.columns = [str(c).strip().lower().replace(" ", "").replace("_", "") for c in df.columns]
     return df
 
+# FUNCIÓN DE ENVÍO MEJORADA
 def enviar_a_excel(email, dia, paso, respuesta):
     payload = {
         "email": str(email), 
@@ -49,10 +50,11 @@ def enviar_a_excel(email, dia, paso, respuesta):
         "respuesta": str(respuesta)
     }
     try:
-        # Enviamos como JSON para que Google Apps Script lo reciba sin problemas
-        requests.post(URL_SCRIPT_RESPUESTAS, json=payload, timeout=10)
-    except Exception as e:
-        pass # Silenciamos el error para no interrumpir al usuario
+        # Timeout de 5 segundos para que no se quede colgada
+        requests.post(URL_SCRIPT_RESPUESTAS, json=payload, timeout=5)
+        return True
+    except:
+        return False
 
 # --- FLUJO ---
 if 'autenticado' not in st.session_state:
@@ -117,13 +119,17 @@ else:
         with col_next:
             es_ultimo = st.session_state.indice == len(pasos) - 1
             texto_btn = "✅ ¡Terminar Día 2!" if es_ultimo else "Siguiente ➡️"
+            
             if st.button(texto_btn):
                 if es_obligatorio and not resp_usuario:
                     st.error("⚠️ Por favor, completa tu reflexión antes de continuar.")
                 else:
+                    # 1. Si hay respuesta, la enviamos con indicador de carga
                     if resp_usuario:
-                        enviar_a_excel(st.session_state.usuario_email, 2, fila['paso'], resp_usuario)
+                        with st.spinner('Guardando tu progreso...'):
+                            enviar_a_excel(st.session_state.usuario_email, 2, fila['paso'], resp_usuario)
                     
+                    # 2. Lógica de avance
                     if not es_ultimo:
                         st.session_state.indice += 1
                         st.rerun()
