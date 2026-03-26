@@ -8,8 +8,8 @@ URL_CONTENIDO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOB
 URL_USUARIOS = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOBIwmsv4S0lx3IA7x2K-q1dVBTtO37eUo35h6BmupREN_cVkCvt2XaOaYIijQbIP5A/pub?gid=83033184&single=true&output=csv"
 URL_RESPUESTAS_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vS0ezjgOs96GuOBIwmsv4S0lx3IA7x2K-q1dVBTtO37eUo35h6BmupREN_cVkCvt2XaOaYIijQbIP5A/pub?gid=1626466961&single=true&output=csv"
 URL_SCRIPT_RESPUESTAS = "https://script.google.com/macros/s/AKfycbzC0gS3sMZpY0H63ad60ufa0hF1vZ9FjKsRyamXGTNYJrBfReU-Hi9VS8uwFnakDKiL9g/exec"
-# Intentemos con la URL directa de renderizado de GitHub
-URL_LOGO = "https://raw.githubusercontent.com/YennyPa/AlanFinanzas/main/Logo.png"
+# URL DE POSTIMAGES (Enlace Directo)
+URL_LOGO = "https://i.postimg.cc/0NTk41C9/logo.png"
 
 st.set_page_config(page_title="Alan Finanzas", page_icon="💰", layout="centered")
 
@@ -35,27 +35,23 @@ if 'autenticado' not in st.session_state: st.session_state.autenticado = False
 if 'resp_temporales' not in st.session_state: st.session_state.resp_temporales = []
 if 'indice' not in st.session_state: st.session_state.indice = 0
 
-# --- ESTILO ---
+# --- ESTILO BOUTIQUE ---
 st.markdown("""
     <style>
     .stApp { background-color: #FDFEFE; }
     .dia-banner { background-color: #457B9D; color: white; text-align: center; padding: 15px; border-radius: 12px; font-size: 24px; font-weight: bold; margin-bottom: 20px; }
     .titulo-finanzas { font-size: 28px !important; font-weight: bold; color: #8B5A2B; }
-    .texto-finanzas { font-size: 19px !important; line-height: 1.7; color: #2E4053; }
+    .texto-finanzas { font-size: 18px !important; line-height: 1.7; color: #2E4053; }
+    .stButton>button { border-radius: 20px; font-weight: bold; width: 100%; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- NAVEGACIÓN ---
+# --- FLUJO ---
 if not st.session_state.autenticado:
-    # Mostramos el logo solo si carga bien, si no, texto limpio
-    col_l, col_r = st.columns([1, 2])
-    with col_l:
-        try: st.image(URL_LOGO, use_container_width=True)
-        except: st.write("💰")
-    with col_r:
-        st.title("Alan Finanzas")
+    st.image(URL_LOGO, width=150)
+    st.title("Alan Finanzas")
+    email_i = st.text_input("Ingresa tu correo registrado:").lower().strip()
     
-    email_i = st.text_input("Ingresa tu correo:").lower().strip()
     if st.button("Entrar al Reto"):
         df_u = cargar_datos(URL_USUARIOS)
         if not df_u.empty and email_i in df_u['email'].values:
@@ -63,11 +59,10 @@ if not st.session_state.autenticado:
             st.session_state.usuario_email = email_i
             st.session_state.usuario_nombre = df_u[df_u['email'] == email_i]['nombrecompleto'].iloc[0]
             
-            # DETERMINAR DÍA ACTUAL
+            # DETERMINAR DÍA ACTUAL (Lógica de ocultar completados)
             df_r = cargar_datos(URL_RESPUESTAS_CSV)
             if not df_r.empty and 'email' in df_r.columns:
                 mis_resp = df_r[df_r['email'] == email_i]
-                # Si ya respondió hoy, el día actual es el máximo + 1
                 st.session_state.dia_actual = int(mis_resp['dia'].max() + 1) if not mis_resp.empty else 1
             else:
                 st.session_state.dia_actual = 1
@@ -78,17 +73,15 @@ else:
     df_c = cargar_datos(URL_CONTENIDO)
     pasos = df_c[df_c['dia'] == st.session_state.dia_actual].sort_values('paso')
     
-    # Header con manejo de error de logo
-    c1, c2 = st.columns([1, 3])
-    with c1:
-        try: st.image(URL_LOGO, width=80)
-        except: st.write("💰")
-    with c2: st.write(f"Hola, **{st.session_state.usuario_nombre}** | Día {st.session_state.dia_actual}")
+    # Header Limpio
+    c1, c2 = st.columns([1, 4])
+    with c1: st.image(URL_LOGO, width=80)
+    with c2: st.subheader(f"Hola, {st.session_state.usuario_nombre}")
 
     if pasos.empty:
         st.balloons()
-        st.markdown(f"### ✨ ¡Día {st.session_state.dia_actual - 1} completado!")
-        st.write("Has terminado tus tareas por hoy. Regresa mañana para el siguiente nivel de tu libertad financiera.")
+        st.markdown(f'<div class="dia-banner">✨ ¡Día {st.session_state.dia_actual - 1} Completado!</div>', unsafe_allow_html=True)
+        st.write("Tu registro de hoy ha sido guardado con éxito. El contenido del siguiente día se habilitará automáticamente cuando procesemos tu avance.")
         if st.button("Cerrar Sesión"):
             st.session_state.autenticado = False
             st.rerun()
@@ -102,7 +95,7 @@ else:
         c_html = str(fila.get('teoriatarea','')).replace('\n', '<br>')
         st.markdown(f"<div class='texto-finanzas'>{c_html}</div>", unsafe_allow_html=True)
         
-        # Video y Audio
+        # Multimedia
         v_url = fila.get('videourl')
         if pd.notna(v_url):
             embed = obtener_embed_video(v_url)
@@ -110,16 +103,16 @@ else:
         
         if pd.notna(fila.get('audiourl')): st.audio(fila.get('audiourl'))
 
-        # Input
+        # Input Reflexivo
         resp_val = ""
         if str(fila.get('tipoinput','')).lower() == 'texto':
             resp_val = st.text_area("Tu reflexión:", key=f"in_{st.session_state.dia_actual}_{st.session_state.indice}")
 
-        # Botones
-        col_izq, col_der = st.columns([1,1])
+        # Navegación
+        col_izq, col_der = st.columns(2)
         with col_der:
             es_fin = st.session_state.indice == len(pasos) - 1
-            if st.button("Siguiente ➡️" if not es_fin else "Finalizar y Enviar"):
+            if st.button("Siguiente ➡️" if not es_fin else "Enviar y Finalizar"):
                 st.session_state.resp_temporales.append({
                     "email": str(st.session_state.usuario_email),
                     "dia": int(st.session_state.dia_actual),
@@ -131,7 +124,7 @@ else:
                     st.session_state.indice += 1
                     st.rerun()
                 else:
-                    with st.spinner('Guardando tu progreso...'):
+                    with st.spinner('Guardando en tu bitácora...'):
                         for r in st.session_state.resp_temporales:
                             requests.post(URL_SCRIPT_RESPUESTAS, json=r, timeout=10)
                     st.session_state.dia_actual += 1
@@ -142,5 +135,5 @@ else:
             if st.session_state.indice > 0:
                 if st.button("⬅️ Anterior"):
                     st.session_state.indice -= 1
-                    st.session_state.resp_temporales.pop() # Quitamos la última para no duplicar
+                    st.session_state.resp_temporales.pop()
                     st.rerun()
